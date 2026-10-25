@@ -2,7 +2,7 @@ package com.remoteconsultation.dao;
 
 import com.remoteconsultation.model.ProfessionalProfile;
 import org.springframework.stereotype.Repository;
-
+import java.sql.ResultSet;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -99,4 +99,31 @@ public class ProfessionalProfileDao {
             }
         }
     }
+
+    public String findVerificationStatus(
+        Connection connection,
+        Long professionalId)
+        throws SQLException {
+
+    String sql = """
+            SELECT verification_status
+            FROM professional_profiles
+            WHERE professional_id = ?
+            """;
+
+    try (PreparedStatement statement =
+                 connection.prepareStatement(sql)) {
+
+        statement.setLong(1, professionalId);
+
+        try (ResultSet resultSet = statement.executeQuery()) {
+            if (resultSet.next()) {
+                return resultSet.getString("verification_status");
+            }
+        }
+    }
+
+    return null;
+}
+
 }

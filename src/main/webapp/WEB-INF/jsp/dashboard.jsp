@@ -65,6 +65,22 @@
             color: #2563eb;
         }
 
+        .verification-notice {
+            margin-top: 20px;
+            padding: 15px 18px;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-left: 5px solid #f59e0b;
+            border-radius: 8px;
+            color: #9a3412;
+            line-height: 1.5;
+        }
+
+        .verification-notice strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
         .cards {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -156,6 +172,18 @@
             Your account role is:
             <strong>${sessionScope.role}</strong>
         </p>
+
+        <% if ("PROFESSIONAL".equals(session.getAttribute("role"))
+                && "PENDING".equals(request.getAttribute("verificationStatus"))) { %>
+
+            <div class="verification-notice">
+                <strong>Verification Pending</strong>
+                Your professional account is awaiting admin verification.
+                You can access your dashboard, but consultation booking
+                features will be available after your profile is approved.
+            </div>
+
+        <% } %>
 
     </div>
 

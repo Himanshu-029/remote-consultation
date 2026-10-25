@@ -164,6 +164,42 @@ public class ProfessionalService {
         }
     }
 
+    public String getProfessionalVerificationStatus(
+        Long professionalId)
+        throws SQLException {
+
+    if (professionalId == null) {
+        throw new IllegalArgumentException(
+                "Professional ID is required."
+        );
+    }
+
+    Connection connection = null;
+
+    try {
+        connection = transactionManager.getConnection();
+
+        String status =
+                professionalProfileDao.findVerificationStatus(
+                        connection,
+                        professionalId
+                );
+
+        if (status == null) {
+            throw new SQLException(
+                    "Professional profile was not found."
+            );
+        }
+
+        return status;
+
+    } finally {
+        if (connection != null) {
+            transactionManager.close(connection);
+        }
+    }
+}
+
     private void validateRegistration(
             ProfessionalRegistrationRequest request) {
 
