@@ -95,7 +95,7 @@ public class RoleAuthorizationFilter implements Filter {
         /*
          * Admin-only URLs
          */
-        if (path.startsWith("/admin/")
+        if ((path.equals("/admin") || path.startsWith("/admin/"))
                 && !"ADMIN".equalsIgnoreCase(role)) {
 
             httpResponse.sendError(

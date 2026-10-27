@@ -35,3 +35,16 @@ build/
 # Environment variables / secrets
 .env
 *.env
+# Local configuration and credentials
+application-local.properties
+application-prod.properties
+*.env
+.env*
+
+# Generated Java files and local classpaths
+*.class
+classpath.txt
+GenerateHash.java
+
+# Local logs
+*.log

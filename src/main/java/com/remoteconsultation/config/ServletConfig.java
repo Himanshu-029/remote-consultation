@@ -10,12 +10,22 @@ import com.remoteconsultation.servlet.LoginServlet;
 import com.remoteconsultation.servlet.LogoutServlet;
 import com.remoteconsultation.servlet.PatientRegistrationServlet;
 import com.remoteconsultation.servlet.ProfessionalRegistrationServlet;
-
+import com.remoteconsultation.servlet.AdminVerificationServlet;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import com.remoteconsultation.servlet.ProfessionalAvailabilityServlet;
+import com.remoteconsultation.service.AvailabilitySlotService;
+import com.remoteconsultation.servlet.ProfessionalDirectoryServlet;
+import com.remoteconsultation.service.ProfessionalDirectoryService;
+import com.remoteconsultation.servlet.PatientProfessionalAvailabilityServlet;
+import com.remoteconsultation.servlet.BookAppointmentServlet;
+import com.remoteconsultation.service.AppointmentService;
+import com.remoteconsultation.servlet.PatientAppointmentsServlet;
+import com.remoteconsultation.servlet.ProfessionalAppointmentsServlet;
+import com.remoteconsultation.servlet.CancelAppointmentServlet;
 
 @Configuration
 public class ServletConfig {
@@ -107,6 +117,20 @@ public class ServletConfig {
         return registration;
     }
 
+    @Bean
+        public ServletRegistrationBean<ProfessionalAppointmentsServlet>
+                professionalAppointmentsServlet(
+                        AppointmentService appointmentService) {
+
+        ServletRegistrationBean<ProfessionalAppointmentsServlet> bean =
+                new ServletRegistrationBean<>(
+                        new ProfessionalAppointmentsServlet(appointmentService),
+                        "/professional/appointments");
+
+        bean.setName("professionalAppointmentsServlet");
+        return bean;
+}
+
     // ---------------------------------------------------------
     // Logout Servlet
     // ---------------------------------------------------------
@@ -153,4 +177,131 @@ dashboardServlet(ProfessionalService professionalService) {
                 "/login"
         );
     }
+
+    // ---------------------------------------------------------
+// Admin Professional Verification Servlet
+// ---------------------------------------------------------
+@Bean
+public ServletRegistrationBean<AdminVerificationServlet>
+adminVerificationServlet(ProfessionalService professionalService) {
+
+    AdminVerificationServlet servlet =
+            new AdminVerificationServlet(professionalService);
+
+    return new ServletRegistrationBean<>(
+            servlet,
+            "/admin/verification"
+    );
+}
+
+
+    // ---------------------------------------------------------
+    // Professional Availability Servlet
+    // ---------------------------------------------------------
+    @Bean
+    public ServletRegistrationBean<ProfessionalAvailabilityServlet>
+    professionalAvailabilityServlet(
+            AvailabilitySlotService availabilitySlotService) {
+
+        ProfessionalAvailabilityServlet servlet =
+                new ProfessionalAvailabilityServlet(
+                        availabilitySlotService
+                );
+
+        return new ServletRegistrationBean<>(
+                servlet,
+                "/professional/availability"
+        );
+    }
+
+
+    // ---------------------------------------------------------
+    // Patient Professional Directory Servlet
+    // ---------------------------------------------------------
+    @Bean
+    public ServletRegistrationBean<ProfessionalDirectoryServlet>
+    professionalDirectoryServlet(
+            ProfessionalDirectoryService directoryService) {
+
+        ProfessionalDirectoryServlet servlet =
+                new ProfessionalDirectoryServlet(directoryService);
+
+        return new ServletRegistrationBean<>(
+                servlet,
+                "/patient/professionals"
+        );
+    }
+
+
+    // ---------------------------------------------------------
+    // Patient Professional Availability Servlet
+    // ---------------------------------------------------------
+    @Bean
+    public ServletRegistrationBean<PatientProfessionalAvailabilityServlet>
+    patientProfessionalAvailabilityServlet(
+            AvailabilitySlotService availabilitySlotService) {
+
+        PatientProfessionalAvailabilityServlet servlet =
+                new PatientProfessionalAvailabilityServlet(
+                        availabilitySlotService);
+
+        return new ServletRegistrationBean<>(
+                servlet,
+                "/patient/professional-availability");
+    }
+
+
+    // ---------------------------------------------------------
+    // Patient Appointment Booking Servlet
+    // ---------------------------------------------------------
+    @Bean
+    public ServletRegistrationBean<BookAppointmentServlet>
+    bookAppointmentServlet(AppointmentService appointmentService) {
+
+        BookAppointmentServlet servlet =
+                new BookAppointmentServlet(appointmentService);
+
+        return new ServletRegistrationBean<>(
+                servlet,
+                "/patient/book-appointment");
+    }
+
+
+
+    // ---------------------------------------------------------
+    // Patient Appointment History Servlet
+    // ---------------------------------------------------------
+    @Bean
+    public ServletRegistrationBean<PatientAppointmentsServlet>
+    patientAppointmentsServlet(
+            AppointmentService appointmentService) {
+
+        PatientAppointmentsServlet servlet =
+                new PatientAppointmentsServlet(appointmentService);
+
+        return new ServletRegistrationBean<>(
+                servlet,
+                "/patient/appointments"
+        );
+    }
+
+
+    // ---------------------------------------------------------
+    // Patient Appointment Cancellation Servlet
+    // ---------------------------------------------------------
+    @Bean
+    public ServletRegistrationBean<CancelAppointmentServlet>
+    cancelAppointmentServlet(
+            AppointmentService appointmentService) {
+
+        CancelAppointmentServlet servlet =
+                new CancelAppointmentServlet(
+                        appointmentService);
+
+        return new ServletRegistrationBean<>(
+                servlet,
+                "/patient/cancel-appointment");
+    }
+
+
 }

@@ -55,4 +55,39 @@ public class PatientProfileDao {
             }
         }
     }
+
+
+    public Long findPatientIdByUserId(
+            Connection connection,
+            Long userId) throws SQLException {
+
+        if (userId == null) {
+            throw new IllegalArgumentException(
+                    "User ID is required."
+            );
+        }
+
+        String sql = """
+                SELECT patient_id
+                FROM patient_profiles
+                WHERE patient_id = ?
+                """;
+
+        try (PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
+
+            statement.setLong(1, userId);
+
+            try (java.sql.ResultSet resultSet =
+                         statement.executeQuery()) {
+
+                if (resultSet.next()) {
+                    return resultSet.getLong("patient_id");
+                }
+            }
+        }
+
+        return null;
+    }
+
 }

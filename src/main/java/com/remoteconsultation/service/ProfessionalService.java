@@ -8,10 +8,12 @@ import com.remoteconsultation.model.ProfessionalProfile;
 import com.remoteconsultation.model.User;
 import com.remoteconsultation.util.PasswordUtil;
 import org.springframework.stereotype.Service;
-
+import java.util.List;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import com.remoteconsultation.model.PendingProfessionalReview;
+
 
 @Service
 public class ProfessionalService {
@@ -200,6 +202,22 @@ public class ProfessionalService {
     }
 }
 
+
+public void requireApprovedProfessional(Long professionalId)
+        throws SQLException {
+
+    String status = getProfessionalVerificationStatus(professionalId);
+
+    if (!"APPROVED".equalsIgnoreCase(status)) {
+        throw new SecurityException(
+                "Your professional account must be approved "
+                + "by an administrator before you can perform "
+                + "this action."
+        );
+    }
+}
+
+
     private void validateRegistration(
             ProfessionalRegistrationRequest request) {
 
@@ -271,4 +289,102 @@ public class ProfessionalService {
             );
         }
     }
+
+
+    public List<ProfessionalProfile> getPendingProfessionals()
+        throws SQLException {
+
+    Connection connection = null;
+
+    try {
+        connection = transactionManager.getConnection();
+
+        return professionalProfileDao.findPendingProfessionals(
+                connection
+        );
+
+    } finally {
+        if (connection != null) {
+            transactionManager.close(connection);
+        }
+    }
+}
+public boolean reviewProfessional(
+        Long professionalId,
+        String decision) throws SQLException {
+
+    if (professionalId == null) {
+        throw new IllegalArgumentException(
+                "Professional ID is required."
+        );
+    }
+
+    if (decision == null) {
+        throw new IllegalArgumentException(
+                "A verification decision is required."
+        );
+    }
+
+    String normalizedDecision =
+            decision.trim().toUpperCase(java.util.Locale.ROOT);
+
+    if (!"APPROVED".equals(normalizedDecision)
+            && !"REJECTED".equals(normalizedDecision)) {
+        throw new IllegalArgumentException(
+                "Decision must be APPROVED or REJECTED."
+        );
+    }
+
+    Connection connection = null;
+
+    try {
+        connection = transactionManager.getConnection();
+
+        boolean updated =
+                professionalProfileDao.updateVerificationStatus(
+                        connection,
+                        professionalId,
+                        normalizedDecision
+                );
+
+        if (updated) {
+            transactionManager.commit(connection);
+        } else {
+            transactionManager.rollback(connection);
+        }
+
+        return updated;
+
+    } catch (SQLException | RuntimeException e) {
+        if (connection != null) {
+            transactionManager.rollback(connection);
+        }
+        throw e;
+
+    } finally {
+        if (connection != null) {
+            transactionManager.close(connection);
+        }
+    }
+}
+
+
+public List<PendingProfessionalReview> getPendingProfessionalReviews()
+        throws SQLException {
+
+    Connection connection = null;
+
+    try {
+        connection = transactionManager.getConnection();
+
+        return professionalProfileDao.findPendingProfessionalReviews(
+                connection
+        );
+    } finally {
+        transactionManager.close(connection);
+    }
+}
+
+
+
 }

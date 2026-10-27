@@ -120,4 +120,34 @@ public class UserDao {
 
         throw new SQLException("User ID could not be generated.");
     }
+
+
+    public boolean isActiveProfessional(
+            Connection connection,
+            Long professionalId) throws SQLException {
+
+        if (professionalId == null) {
+            return false;
+        }
+
+        String sql = """
+                SELECT COUNT(*)
+                FROM users
+                WHERE user_id = ?
+                  AND role = 'PROFESSIONAL'
+                  AND status = 'ACTIVE'
+                """;
+
+        try (PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
+
+            statement.setLong(1, professionalId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next()
+                        && resultSet.getInt(1) == 1;
+            }
+        }
+    }
+
 }
