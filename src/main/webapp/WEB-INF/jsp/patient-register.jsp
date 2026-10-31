@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -140,7 +141,11 @@
     </p>
 
     <form action="${pageContext.request.contextPath}/register"
-          method="post">
+            method="post">
+
+    <input type="hidden"
+            name="_csrf"
+            value="<c:out value='${sessionScope.csrfToken}'/>">
 
         <div class="form-grid">
 

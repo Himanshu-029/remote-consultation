@@ -22,7 +22,12 @@ class PatientRegistrationTest {
         request.setFullName("Test Patient");
         request.setEmail("test.patient." + System.currentTimeMillis() + "@example.com");
         request.setPassword("Test@12345");
-        request.setPhone("98" + System.currentTimeMillis() % 100000000L);
+        request.setPhone(
+        String.format(
+                "98%08d",
+                System.currentTimeMillis() % 100000000L
+            )
+        );
 
         request.setDateOfBirth(
                 java.time.LocalDate.of(2002, 5, 15)

@@ -26,6 +26,9 @@ import com.remoteconsultation.service.AppointmentService;
 import com.remoteconsultation.servlet.PatientAppointmentsServlet;
 import com.remoteconsultation.servlet.ProfessionalAppointmentsServlet;
 import com.remoteconsultation.servlet.CancelAppointmentServlet;
+import com.remoteconsultation.filter.CsrfProtectionFilter;
+import com.remoteconsultation.security.LoginRateLimiter;
+
 
 @Configuration
 public class ServletConfig {
@@ -97,6 +100,25 @@ public class ServletConfig {
         return registration;
     }
 
+
+        // ---------------------------------------------------------
+        // CSRF Protection Filter
+        // ---------------------------------------------------------
+        @Bean
+        public FilterRegistrationBean<CsrfProtectionFilter>
+                csrfProtectionFilter() {
+
+        FilterRegistrationBean<CsrfProtectionFilter> registration =
+            new FilterRegistrationBean<>();
+
+        registration.setFilter(new CsrfProtectionFilter());
+        registration.addUrlPatterns("/*");
+        registration.setOrder(2);
+
+    return registration;
+}
+
+
     // ---------------------------------------------------------
     // Role Authorization Filter
     // ---------------------------------------------------------
@@ -112,7 +134,7 @@ public class ServletConfig {
         );
 
         registration.addUrlPatterns("/*");
-        registration.setOrder(2);
+        registration.setOrder(3);
 
         return registration;
     }
@@ -162,22 +184,33 @@ dashboardServlet(ProfessionalService professionalService) {
             "/dashboard"
     );
 }
+
+// ---------------------------------------------------------
+// Login Rate Limiter
+// ---------------------------------------------------------
+@Bean
+public LoginRateLimiter loginRateLimiter() {
+    return new LoginRateLimiter();
+}
+
+
     // ---------------------------------------------------------
     // Login Servlet
     // ---------------------------------------------------------
     @Bean
-    public ServletRegistrationBean<LoginServlet>
-    loginServlet(UserService userService) {
+        public ServletRegistrationBean<LoginServlet>
+        loginServlet(
+                UserService userService,
+                LoginRateLimiter loginRateLimiter) {
 
-        LoginServlet servlet =
-                new LoginServlet(userService);
+                LoginServlet servlet =
+                        new LoginServlet(userService, loginRateLimiter);
 
-        return new ServletRegistrationBean<>(
+                return new ServletRegistrationBean<>(
                 servlet,
                 "/login"
-        );
-    }
-
+                );
+        }
     // ---------------------------------------------------------
 // Admin Professional Verification Servlet
 // ---------------------------------------------------------

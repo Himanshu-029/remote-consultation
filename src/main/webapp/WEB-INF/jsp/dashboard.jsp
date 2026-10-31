@@ -1,11 +1,12 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Dashboard | Remote Consultation</title>
 
     <style>
@@ -27,6 +28,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 16px;
         }
 
         .navbar h2 {
@@ -35,6 +37,7 @@
 
         .user-info {
             text-align: right;
+            overflow-wrap: anywhere;
         }
 
         .user-name {
@@ -81,9 +84,23 @@
             margin-bottom: 5px;
         }
 
+        .verification-notice.approved {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            border-left-color: #10b981;
+            color: #065f46;
+        }
+
+        .verification-notice.rejected {
+            background: #fff0ef;
+            border-color: #fecaca;
+            border-left-color: #dc2626;
+            color: #991b1b;
+        }
+
         .cards {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 20px;
         }
 
@@ -92,6 +109,7 @@
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+            min-width: 0;
         }
 
         .card h3 {
@@ -104,19 +122,46 @@
             line-height: 1.5;
         }
 
-        .logout-btn {
+        .action-btn {
             display: inline-block;
+            margin-top: 12px;
+            padding: 11px 20px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .action-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .logout-btn {
             margin-top: 25px;
             padding: 11px 20px;
             background: #dc2626;
             color: white;
-            text-decoration: none;
+            border: none;
             border-radius: 6px;
+            font-family: inherit;
+            font-size: inherit;
             font-weight: bold;
+            cursor: pointer;
         }
 
         .logout-btn:hover {
             background: #b91c1c;
+        }
+
+        .action-btn:focus-visible,
+        .logout-btn:focus-visible {
+            outline: 3px solid #93c5fd;
+            outline-offset: 3px;
         }
 
         @media (max-width: 800px) {
@@ -138,29 +183,25 @@
 <body>
 
 <nav class="navbar">
-
     <h2>Remote Consultation</h2>
 
     <div class="user-info">
-
         <div class="user-name">
-            ${sessionScope.userName}
+            <c:out value="${sessionScope.userName}" default="User" />
         </div>
 
         <div class="user-role">
-            ${sessionScope.role}
+            <c:out value="${sessionScope.role}" />
         </div>
-
     </div>
-
 </nav>
 
-<div class="container">
+<main class="container">
 
-    <div class="welcome-card">
-
+    <section class="welcome-card">
         <h1>
-            Welcome, ${sessionScope.userName}!
+            Welcome,
+            <c:out value="${sessionScope.userName}" default="User" />!
         </h1>
 
         <p>
@@ -170,147 +211,178 @@
 
         <p>
             Your account role is:
-            <strong>${sessionScope.role}</strong>
+            <strong><c:out value="${sessionScope.role}" /></strong>
         </p>
 
+        <c:if test="${sessionScope.role eq 'PROFESSIONAL'}">
 
-<%
-    if ("PROFESSIONAL".equals(session.getAttribute("role"))) {
-        String verificationStatus =
-                (String) request.getAttribute("verificationStatus");
+            <c:choose>
+                <c:when test="${verificationStatus eq 'PENDING'}">
+                    <div class="verification-notice" role="status">
+                        <strong>Verification Pending</strong>
+                        Your professional profile is awaiting administrator
+                        review. Services requiring approval remain unavailable
+                        until your profile is approved.
+                    </div>
+                </c:when>
 
-        if ("PENDING".equals(verificationStatus)) {
-%>
-            <div class="verification-notice">
-                <strong>Verification Pending</strong>
-                Your professional profile is awaiting administrator review.
-                Professional services that require approval will remain
-                unavailable until your profile is approved.
-            </div>
-<%
-        } else if ("REJECTED".equals(verificationStatus)) {
-%>
-            <div class="verification-notice">
-                <strong>Verification Rejected</strong>
-                Your professional profile was not approved. Please contact
-                the administrator for clarification before attempting to
-                provide professional services.
-            </div>
-<%
-        } else if ("APPROVED".equals(verificationStatus)) {
-%>
-            <div class="verification-notice"
-                 style="background:#ecfdf5;border-color:#a7f3d0;
-                        border-left-color:#10b981;color:#065f46;">
-                <strong>Verification Approved</strong>
-                Your professional profile has been approved.
-            </div>
-<%
-        }
-    }
-%>
+                <c:when test="${verificationStatus eq 'REJECTED'}">
+                    <div class="verification-notice rejected" role="status">
+                        <strong>Verification Rejected</strong>
+                        Your professional profile was not approved. Please
+                        contact the administrator for clarification.
+                    </div>
+                </c:when>
 
+                <c:when test="${verificationStatus eq 'APPROVED'}">
+                    <div class="verification-notice approved" role="status">
+                        <strong>Verification Approved</strong>
+                        Your professional profile has been approved.
+                    </div>
+                </c:when>
 
-    </div>
+                <c:otherwise>
+                    <div class="verification-notice" role="status">
+                        <strong>Verification Status Unavailable</strong>
+                        We could not confirm your verification status.
+                        Please try again later or contact the administrator.
+                    </div>
+                </c:otherwise>
+            </c:choose>
 
+        </c:if>
+    </section>
 
-    <div class="cards">
+    <section class="cards" aria-label="Dashboard actions">
 
-        <% if ("ADMIN".equals(session.getAttribute("role"))) { %>
+        <c:choose>
 
-            <div class="card">
-                <h3>Professional Verification</h3>
-                <p>
-                    Review pending professional applications,
-                    verify credentials, and approve or reject
-                    registrations.
-                </p>
-                <a href="${pageContext.request.contextPath}/admin/verification"
-                   class="logout-btn"
-                   style="background:#2563eb;">
-                    Open Verification Panel
-                </a>
-            </div>
+            <c:when test="${sessionScope.role eq 'ADMIN'}">
+                <article class="card">
+                    <h3>Professional Verification</h3>
+                    <p>
+                        Review pending professional applications, verify
+                        credentials, and approve or reject registrations.
+                    </p>
+                    <a href="${pageContext.request.contextPath}/admin/verification"
+                       class="action-btn">
+                        Open Verification Panel
+                    </a>
+                </article>
+            </c:when>
 
-        <% } else if ("PROFESSIONAL".equals(session.getAttribute("role"))) { %>
+            <c:when test="${sessionScope.role eq 'PROFESSIONAL'}">
 
-            <div class="card">
-                <h3>Professional Profile</h3>
-                <p>
-                    Check your verification status and keep
-                    track of your professional account.
-                </p>
-            </div>
+                <article class="card">
+                    <h3>Professional Profile</h3>
+                    <p>
+                        Check your verification status and manage your
+                        professional account.
+                    </p>
+                </article>
 
-            <div class="card">
-                <h3>Appointments</h3>
-                <p>
-                    Appointment management will be available
-                    when the booking workflow is implemented.
-                </p>
-            </div>
+                <article class="card">
+                    <h3>Appointments</h3>
+                    <p>
+                        View and manage your patient appointments.
+                    </p>
+                    <a href="${pageContext.request.contextPath}/professional/appointments"
+                       class="action-btn">
+                        Manage Appointments
+                    </a>
+                </article>
 
+                <article class="card">
+                    <h3>Manage Availability</h3>
+                    <p>
+                        Publish available consultation dates and time slots.
+                        Server-side verification is required for restricted
+                        actions.
+                    </p>
+                    <c:choose>
+                        <c:when test="${verificationStatus eq 'APPROVED'}">
+                            <a href="${pageContext.request.contextPath}/professional/availability"
+                               class="action-btn">
+                                Manage Availability
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                            <p>
+                                Availability management is unavailable until
+                                your professional profile is approved.
+                            </p>
+                        </c:otherwise>
+                    </c:choose>
+                </article>
 
-            <div class="card">
-                <h3>Manage Availability</h3>
-                <p>
-                    Publish your available consultation dates
-                    and time slots. Only approved professionals
-                    can publish availability.
-                </p>
-                <a href="${pageContext.request.contextPath}/professional/availability"
-                   class="logout-btn"
-                   style="background:#2563eb;">
-                    Manage Availability
-                </a>
-            </div>
+            </c:when>
 
+            <c:when test="${sessionScope.role eq 'PATIENT'}">
 
-        <% } else if ("PATIENT".equals(session.getAttribute("role"))) { %>
+                <article class="card">
+                    <h3>Find Healthcare Professionals</h3>
+                    <p>
+                        Search for healthcare professionals by specialization
+                        and availability.
+                    </p>
+                    <a href="${pageContext.request.contextPath}/patient/professionals"
+                       class="action-btn">
+                        Find Professionals
+                    </a>
+                </article>
 
-            <div class="card">
-                <h3>Find Healthcare Professionals</h3>
-                <p>
-                    Search for healthcare professionals by
-                    specialization and availability.
-                </p>
-            </div>
+                <article class="card">
+                    <h3>Appointments</h3>
+                    <p>
+                        View your appointment history and manage eligible
+                        bookings.
+                    </p>
+                    <a href="${pageContext.request.contextPath}/patient/appointments"
+                       class="action-btn">
+                        My Appointments
+                    </a>
+                </article>
 
+                <article class="card">
+                    <h3>Consultations</h3>
+                    <p>
+                        Remote consultation features will be available as
+                        those workflows are implemented.
+                    </p>
+                </article>
 
-<div class="card">
-    <h3>Appointments</h3>
-    <p>
-        Review patient bookings, confirm pending appointments,
-        and reject bookings when necessary.
-    </p>
-    <a href="${pageContext.request.contextPath}/professional/appointments"
-       class="logout-btn"
-       style="background:#2563eb;">
-        Manage Appointments
-    </a>
-</div>
+            </c:when>
 
+            <c:otherwise>
+                <article class="card">
+                    <h3>Dashboard unavailable</h3>
+                    <p>
+                        Your account role could not be recognized.
+                        Please sign in again.
+                    </p>
+                    <a href="${pageContext.request.contextPath}/login"
+                       class="action-btn">
+                        Return to Login
+                    </a>
+                </article>
+            </c:otherwise>
 
-            <div class="card">
-                <h3>Consultations</h3>
-                <p>
-                    Remote consultations and related features
-                    will be available as those workflows are built.
-                </p>
-            </div>
+        </c:choose>
 
-        <% } %>
+    </section>
 
-    </div>
+    <form action="${pageContext.request.contextPath}/logout"
+          method="post">
 
+        <input type="hidden"
+               name="_csrf"
+               value="<c:out value='${sessionScope.csrfToken}' />">
 
-    <a
-        href="${pageContext.request.contextPath}/logout"
-        class="logout-btn">
-        Logout
-    </a>
+        <button type="submit" class="logout-btn">
+            Logout
+        </button>
+    </form>
 
-</div>
-
+</main>
 </body>
 </html>

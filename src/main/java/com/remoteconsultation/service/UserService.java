@@ -11,6 +11,8 @@ import com.remoteconsultation.util.PasswordUtil;
 import com.remoteconsultation.dto.LoginRequest;
 import java.sql.Connection;
 import java.sql.SQLException;
+import com.remoteconsultation.util.InputValidator;
+
 
 @Service
 public class UserService {
@@ -103,47 +105,41 @@ public class UserService {
         }
     }
 
-    private void validatePatientRegistration(
-            RegistrationRequest request) {
 
-        if (request == null) {
-            throw new IllegalArgumentException(
-                    "Registration request cannot be null."
-            );
-        }
+private void validatePatientRegistration(
+        RegistrationRequest request) {
 
-        if (request.getFullName() == null
-                || request.getFullName().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Full name is required."
-            );
-        }
-
-        if (request.getEmail() == null
-                || request.getEmail().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Email is required."
-            );
-        }
-
-        if (request.getPassword() == null
-                || request.getPassword().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Password is required."
-            );
-        }
-
-        if (request.getPhone() == null
-                || request.getPhone().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Phone number is required."
-            );
-        }
+    if (request == null) {
+        throw new IllegalArgumentException(
+                "Registration request cannot be null."
+        );
     }
+
+    if (!InputValidator.isNotBlank(request.getFullName())) {
+        throw new IllegalArgumentException(
+                "Full name is required."
+        );
+    }
+
+    if (!InputValidator.isValidEmail(request.getEmail())) {
+        throw new IllegalArgumentException(
+                "Please provide a valid email address."
+        );
+    }
+
+    if (!InputValidator.isValidPassword(request.getPassword())) {
+        throw new IllegalArgumentException(
+                "Password must contain at least 8 characters and no more than 72 UTF-8 bytes."
+        );
+    }
+
+    if (!InputValidator.isValidPhone(request.getPhone())) {
+        throw new IllegalArgumentException(
+                "Please provide a valid phone number containing 10 to 15 digits, optionally starting with +."
+        );
+    }
+}
+
     public User login(LoginRequest request) throws SQLException {
 
     if (request == null) {

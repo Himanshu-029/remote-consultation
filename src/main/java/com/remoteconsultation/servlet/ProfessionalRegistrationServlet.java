@@ -1,6 +1,8 @@
+
 package com.remoteconsultation.servlet;
 
 import com.remoteconsultation.dto.ProfessionalRegistrationRequest;
+import com.remoteconsultation.filter.CsrfProtectionFilter;
 import com.remoteconsultation.service.ProfessionalService;
 
 import jakarta.servlet.RequestDispatcher;
@@ -8,11 +10,20 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.sql.SQLException;
 
 public class ProfessionalRegistrationServlet extends HttpServlet {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(
+                    ProfessionalRegistrationServlet.class
+            );
 
     private final ProfessionalService professionalService;
 
@@ -27,6 +38,13 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
+
+        HttpSession session = request.getSession(true);
+
+        request.setAttribute(
+                "csrfToken",
+                CsrfProtectionFilter.ensureToken(session)
+        );
 
         RequestDispatcher dispatcher =
                 request.getRequestDispatcher(
@@ -63,9 +81,7 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
                 request.getParameter("phone")
         );
 
-        // -----------------------------------------------------
         // Specialization
-        // -----------------------------------------------------
         String specializationId =
                 request.getParameter("specializationId");
 
@@ -73,13 +89,11 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
                 && !specializationId.isBlank()) {
 
             try {
-
                 registrationRequest.setSpecializationId(
                         Long.parseLong(specializationId)
                 );
 
             } catch (NumberFormatException e) {
-
                 request.setAttribute(
                         "error",
                         "Invalid specialization selected."
@@ -90,9 +104,7 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
             }
         }
 
-        // -----------------------------------------------------
         // Professional details
-        // -----------------------------------------------------
         registrationRequest.setQualification(
                 request.getParameter("qualification")
         );
@@ -101,9 +113,7 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
                 request.getParameter("licenseNumber")
         );
 
-        // -----------------------------------------------------
         // Experience
-        // -----------------------------------------------------
         String experienceYears =
                 request.getParameter("experienceYears");
 
@@ -111,13 +121,11 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
                 && !experienceYears.isBlank()) {
 
             try {
-
                 registrationRequest.setExperienceYears(
                         Integer.parseInt(experienceYears)
                 );
 
             } catch (NumberFormatException e) {
-
                 request.setAttribute(
                         "error",
                         "Experience years must be a valid number."
@@ -128,25 +136,18 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
             }
         }
 
-        // -----------------------------------------------------
         // Consultation fee
-        // -----------------------------------------------------
         registrationRequest.setConsultationFee(
                 request.getParameter("consultationFee")
         );
 
-        // -----------------------------------------------------
-        // Bio
-        // -----------------------------------------------------
+        // Professional biography
         registrationRequest.setBio(
                 request.getParameter("bio")
         );
 
-        // -----------------------------------------------------
-        // Service call
-        // -----------------------------------------------------
+        // Register professional
         try {
-
             Long userId =
                     professionalService.registerProfessional(
                             registrationRequest
@@ -158,25 +159,22 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
                             + "Your account is pending admin verification."
             );
 
-            request.setAttribute(
-                    "userId",
-                    userId
-            );
+            request.setAttribute("userId", userId);
 
             forwardToRegistrationPage(request, response);
 
         } catch (IllegalArgumentException e) {
-
-            request.setAttribute(
-                    "error",
-                    e.getMessage()
-            );
+            // Expected validation errors: show the safe message.
+            request.setAttribute("error", e.getMessage());
 
             forwardToRegistrationPage(request, response);
 
         } catch (SQLException e) {
-
-            e.printStackTrace();
+            // Keep technical details in server logs, not the response.
+            logger.error(
+                    "Database error during professional registration.",
+                    e
+            );
 
             request.setAttribute(
                     "error",
@@ -186,8 +184,10 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
             forwardToRegistrationPage(request, response);
 
         } catch (Exception e) {
-
-            e.printStackTrace();
+            logger.error(
+                    "Unexpected error during professional registration.",
+                    e
+            );
 
             request.setAttribute(
                     "error",
@@ -198,13 +198,17 @@ public class ProfessionalRegistrationServlet extends HttpServlet {
         }
     }
 
-    // ---------------------------------------------------------
-    // Forward back to registration JSP
-    // ---------------------------------------------------------
     private void forwardToRegistrationPage(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
+
+        HttpSession session = request.getSession(true);
+
+        request.setAttribute(
+                "csrfToken",
+                CsrfProtectionFilter.ensureToken(session)
+        );
 
         RequestDispatcher dispatcher =
                 request.getRequestDispatcher(

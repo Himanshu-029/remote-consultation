@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import com.remoteconsultation.model.PendingProfessionalReview;
+import com.remoteconsultation.util.InputValidator;
 
 
 @Service
@@ -218,77 +219,101 @@ public void requireApprovedProfessional(Long professionalId)
 }
 
 
-    private void validateRegistration(
-            ProfessionalRegistrationRequest request) {
 
-        if (request == null) {
-            throw new IllegalArgumentException(
-                    "Registration request cannot be null."
-            );
-        }
+private void validateRegistration(
+        ProfessionalRegistrationRequest request) {
 
-        if (request.getFullName() == null
-                || request.getFullName().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Full name is required."
-            );
-        }
-
-        if (request.getEmail() == null
-                || request.getEmail().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Email is required."
-            );
-        }
-
-        if (request.getPassword() == null
-                || request.getPassword().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Password is required."
-            );
-        }
-
-        if (request.getPhone() == null
-                || request.getPhone().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Phone number is required."
-            );
-        }
-
-        if (request.getSpecializationId() == null) {
-            throw new IllegalArgumentException(
-                    "Specialization is required."
-            );
-        }
-
-        if (request.getQualification() == null
-                || request.getQualification().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Qualification is required."
-            );
-        }
-
-        if (request.getLicenseNumber() == null
-                || request.getLicenseNumber().isBlank()) {
-            throw new IllegalArgumentException(
-                    "License number is required."
-            );
-        }
-
-        if (request.getExperienceYears() == null
-                || request.getExperienceYears() < 0) {
-            throw new IllegalArgumentException(
-                    "Experience years must be zero or greater."
-            );
-        }
-
-        if (request.getConsultationFee() == null
-                || request.getConsultationFee().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Consultation fee is required."
-            );
-        }
+    if (request == null) {
+        throw new IllegalArgumentException(
+                "Registration request cannot be null."
+        );
     }
+
+    if (!InputValidator.isNotBlank(request.getFullName())) {
+        throw new IllegalArgumentException(
+                "Full name is required."
+        );
+    }
+
+    if (!InputValidator.isValidEmail(request.getEmail())) {
+        throw new IllegalArgumentException(
+                "Please provide a valid email address."
+        );
+    }
+
+    if (!InputValidator.isValidPassword(request.getPassword())) {
+        throw new IllegalArgumentException(
+                "Password must contain at least 8 characters and no more than 72 UTF-8 bytes."
+        );
+    }
+
+    if (!InputValidator.isValidPhone(request.getPhone())) {
+        throw new IllegalArgumentException(
+                "Please provide a valid phone number containing 10 to 15 digits, optionally starting with +."
+        );
+    }
+
+    if (request.getSpecializationId() == null
+            || request.getSpecializationId() <= 0) {
+        throw new IllegalArgumentException(
+                "Please select a valid specialization."
+        );
+    }
+
+    if (!InputValidator.isNotBlank(request.getQualification())) {
+        throw new IllegalArgumentException(
+                "Qualification is required."
+        );
+    }
+
+    if (!InputValidator.isNotBlank(request.getLicenseNumber())) {
+        throw new IllegalArgumentException(
+                "License number is required."
+        );
+    }
+
+    if (request.getExperienceYears() == null
+            || request.getExperienceYears() < 0
+            || request.getExperienceYears() > 80) {
+        throw new IllegalArgumentException(
+                "Experience years must be between 0 and 80."
+        );
+    }
+
+    if (!InputValidator.isNotBlank(request.getConsultationFee())) {
+        throw new IllegalArgumentException(
+                "Consultation fee is required."
+        );
+    }
+
+    final BigDecimal fee;
+
+    try {
+        fee = new BigDecimal(request.getConsultationFee().trim());
+    } catch (NumberFormatException e) {
+        throw new IllegalArgumentException(
+                "Consultation fee must be a valid number."
+        );
+    }
+
+    if (fee.compareTo(BigDecimal.ZERO) < 0) {
+        throw new IllegalArgumentException(
+                "Consultation fee cannot be negative."
+        );
+    }
+
+    if (fee.compareTo(new BigDecimal("1000000")) > 0) {
+        throw new IllegalArgumentException(
+                "Consultation fee cannot exceed 1000000."
+        );
+    }
+
+    if (fee.scale() > 2) {
+        throw new IllegalArgumentException(
+                "Consultation fee can have at most two decimal places."
+        );
+    }
+}
 
 
     public List<ProfessionalProfile> getPendingProfessionals()

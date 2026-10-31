@@ -1,6 +1,7 @@
 
 package com.remoteconsultation.servlet;
 
+import com.remoteconsultation.filter.CsrfProtectionFilter;
 import com.remoteconsultation.model.PendingProfessionalReview;
 import com.remoteconsultation.service.ProfessionalService;
 import com.remoteconsultation.util.SessionUtil;
@@ -10,36 +11,21 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import java.security.SecureRandom;
-import java.util.Base64;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 
 public class AdminVerificationServlet extends HttpServlet {
 
-    private static final String CSRF_SESSION_KEY =
-        "ADMIN_VERIFICATION_CSRF_TOKEN";
-
-    private static final SecureRandom SECURE_RANDOM =
-        new SecureRandom();
-
-        private String getOrCreateCsrfToken(HttpSession session) {
-    String token = (String) session.getAttribute(CSRF_SESSION_KEY);
-
-    if (token == null || token.isBlank()) {
-        byte[] bytes = new byte[32];
-        SECURE_RANDOM.nextBytes(bytes);
-
-        token = Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(bytes);
-
-        session.setAttribute(CSRF_SESSION_KEY, token);
-    }
-
-    return token;
-}
+    private static final Logger logger =
+            LoggerFactory.getLogger(AdminVerificationServlet.class);
 
     private final ProfessionalService professionalService;
 
@@ -57,33 +43,43 @@ public class AdminVerificationServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         String role = SessionUtil.getRole(session);
 
-        request.setAttribute(
-        "csrfToken",
-        getOrCreateCsrfToken(session)
-);
-
-        // Defense in depth: only administrators may view this page.
         if (!"ADMIN".equalsIgnoreCase(role)) {
             response.sendError(
-                    session == null ? HttpServletResponse.SC_UNAUTHORIZED
-                                    : HttpServletResponse.SC_FORBIDDEN);
+                    session == null
+                            ? HttpServletResponse.SC_UNAUTHORIZED
+                            : HttpServletResponse.SC_FORBIDDEN
+            );
             return;
         }
+
+        request.setAttribute(
+                "csrfToken",
+                CsrfProtectionFilter.ensureToken(session)
+        );
 
         try {
             List<PendingProfessionalReview> pendingProfessionals =
                     professionalService.getPendingProfessionalReviews();
 
             request.setAttribute(
-                    "pendingProfessionals", pendingProfessionals);
+                    "pendingProfessionals",
+                    pendingProfessionals
+            );
 
             request.getRequestDispatcher(
-                    "/WEB-INF/jsp/admin-verification.jsp")
-                    .forward(request, response);
+                    "/WEB-INF/jsp/admin-verification.jsp"
+            ).forward(request, response);
 
         } catch (SQLException e) {
-            throw new ServletException(
-                    "Unable to load pending professional verifications.", e);
+            logger.error(
+                    "Unable to load pending professional verifications.",
+                    e
+            );
+
+            response.sendError(
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Unable to load professional verifications. Please try again later."
+            );
         }
     }
 
@@ -96,41 +92,41 @@ public class AdminVerificationServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         String role = SessionUtil.getRole(session);
 
-        // Never trust a role supplied by the browser.
         if (!"ADMIN".equalsIgnoreCase(role)) {
             response.sendError(
-                    session == null ? HttpServletResponse.SC_UNAUTHORIZED
-                                    : HttpServletResponse.SC_FORBIDDEN);
+                    session == null
+                            ? HttpServletResponse.SC_UNAUTHORIZED
+                            : HttpServletResponse.SC_FORBIDDEN
+            );
             return;
         }
 
+        // Validate the shared CSRF token.
+        String expectedToken =
+                (String) session.getAttribute(
+                        CsrfProtectionFilter.SESSION_TOKEN_ATTRIBUTE
+                );
 
-String expectedToken =
-        (String) session.getAttribute(CSRF_SESSION_KEY);
+        String submittedToken = request.getParameter("_csrf");
 
-String submittedToken =
-        request.getParameter("csrfToken");
+        if (expectedToken == null
+                || submittedToken == null
+                || submittedToken.isBlank()
+                || !MessageDigest.isEqual(
+                        expectedToken.getBytes(StandardCharsets.UTF_8),
+                        submittedToken.getBytes(StandardCharsets.UTF_8))) {
 
-if (expectedToken == null
-        || submittedToken == null
-        || !java.security.MessageDigest.isEqual(
-                expectedToken.getBytes(
-                        java.nio.charset.StandardCharsets.UTF_8),
-                submittedToken.getBytes(
-                        java.nio.charset.StandardCharsets.UTF_8))) {
-
-    response.sendError(
-            HttpServletResponse.SC_FORBIDDEN,
-            "Invalid or missing CSRF token."
-    );
-    return;
-}
-
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN,
+                    "Invalid or missing CSRF token."
+            );
+            return;
+        }
 
         String professionalIdValue =
                 request.getParameter("professionalId");
-        String decision =
-                request.getParameter("decision");
+
+        String decision = request.getParameter("decision");
 
         if (professionalIdValue == null || decision == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
@@ -146,12 +142,13 @@ if (expectedToken == null
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
+
         } catch (NumberFormatException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
-        decision = decision.trim().toUpperCase(java.util.Locale.ROOT);
+        decision = decision.trim().toUpperCase(Locale.ROOT);
 
         if (!"APPROVED".equals(decision)
                 && !"REJECTED".equals(decision)) {
@@ -162,7 +159,9 @@ if (expectedToken == null
         try {
             boolean updated =
                     professionalService.reviewProfessional(
-                            professionalId, decision);
+                            professionalId,
+                            decision
+                    );
 
             String result;
 
@@ -170,16 +169,28 @@ if (expectedToken == null
                 result = "stale";
             } else {
                 result = "APPROVED".equals(decision)
-                        ? "approved" : "rejected";
+                        ? "approved"
+                        : "rejected";
             }
 
             response.sendRedirect(
                     request.getContextPath()
-                            + "/admin/verification?result=" + result);
+                            + "/admin/verification?result=" + result
+            );
 
         } catch (SQLException e) {
-            throw new ServletException(
-                    "Unable to update professional verification.", e);
+            logger.error(
+                    "Unable to update professional verification. "
+                            + "Professional ID: {}, Decision: {}",
+                    professionalId,
+                    decision,
+                    e
+            );
+
+            response.sendError(
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Unable to update professional verification. Please try again later."
+            );
         }
     }
 }

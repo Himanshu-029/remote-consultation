@@ -147,6 +147,9 @@
 <form method="post"
       action="${pageContext.request.contextPath}/patient/book-appointment">
 
+    <input type="hidden"
+        name="_csrf"
+        value="<c:out value='${sessionScope.csrfToken}'/>">
     <input type="hidden" name="slotId"
            value="<c:out value='${slot.slotId}'/>">
 

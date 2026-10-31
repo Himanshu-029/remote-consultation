@@ -299,6 +299,10 @@
                                       onsubmit="return confirm('Confirm this appointment?');">
 
                                     <input type="hidden"
+                                            name="_csrf"
+                                            value="<c:out value='${sessionScope.csrfToken}'/>">
+
+                                    <input type="hidden"
                                            name="appointmentId"
                                            value="<c:out value='${appointment.appointmentId}'/>">
 
@@ -314,6 +318,10 @@
                                 <form method="post"
                                       action="${pageContext.request.contextPath}/professional/appointments"
                                       onsubmit="return confirm('Reject this appointment?');">
+
+                                    <input type="hidden"
+                                            name="_csrf"
+                                            value="<c:out value='${sessionScope.csrfToken}'/>">
 
                                     <input type="hidden"
                                            name="appointmentId"
@@ -337,6 +345,10 @@
                                 <form method="post"
                                       action="${pageContext.request.contextPath}/professional/appointments"
                                       onsubmit="return confirm('Mark this appointment as completed?');">
+
+                                    <input type="hidden"
+                                           name="_csrf"
+                                           value="<c:out value='${sessionScope.csrfToken}'/>">
 
                                     <input type="hidden"
                                            name="appointmentId"

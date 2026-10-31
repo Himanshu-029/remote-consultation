@@ -1,7 +1,6 @@
 
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -23,7 +22,9 @@
             --background: #f4f7fb;
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             margin: 0;
@@ -53,14 +54,18 @@
             margin: 32px auto;
         }
 
-        .intro { margin-bottom: 24px; }
+        .intro {
+            margin-bottom: 24px;
+        }
 
         .intro h2 {
             margin-bottom: 8px;
             font-size: 27px;
         }
 
-        .muted { color: var(--muted); }
+        .muted {
+            color: var(--muted);
+        }
 
         .notice {
             padding: 13px 16px;
@@ -157,12 +162,20 @@
             overflow-wrap: anywhere;
         }
 
+        .bio p {
+            margin-bottom: 0;
+        }
+
         .actions {
             display: flex;
             gap: 10px;
             margin-top: 20px;
             padding-top: 16px;
             border-top: 1px solid var(--border);
+        }
+
+        .actions form {
+            margin: 0;
         }
 
         button {
@@ -179,8 +192,18 @@
             outline-offset: 3px;
         }
 
-        .approve { background: var(--success); }
-        .reject { background: var(--danger); }
+        button:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
+
+        .approve {
+            background: var(--success);
+        }
+
+        .reject {
+            background: var(--danger);
+        }
 
         .empty {
             padding: 40px 20px;
@@ -191,10 +214,22 @@
         }
 
         @media (max-width: 650px) {
-            .details { grid-template-columns: 1fr; }
-            .professional-card { padding: 16px; }
-            .actions { flex-direction: column; }
-            button { width: 100%; }
+            .details {
+                grid-template-columns: 1fr;
+            }
+
+            .professional-card {
+                padding: 16px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .actions form,
+            button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -202,7 +237,7 @@
 <body>
 <header>
     <h1>Remote Consultation</h1>
-    <p>Administrator workspace · Professional verification</p>
+    <p>Administrator workspace - Professional verification</p>
 </header>
 
 <main>
@@ -221,8 +256,8 @@
     </c:if>
 
     <c:if test="${param.result == 'rejected'}">
-        <div class="notice success" role="status">
-            Professional rejected successfully.
+        <div class="notice error" role="status">
+            Professional application rejected.
         </div>
     </c:if>
 
@@ -241,8 +276,10 @@
             <strong>Pending applications</strong>
             <p class="muted">Review each application before taking action.</p>
         </div>
+
         <div class="count">
-            Awaiting review: <strong><c:out value="${pendingCount}" /></strong>
+            Awaiting review:
+            <strong><c:out value="${pendingCount}" /></strong>
         </div>
     </div>
 
@@ -267,11 +304,13 @@
                                 <c:out value="${professional.fullName}"
                                        default="Name not provided" />
                             </h3>
+
                             <div class="muted">
                                 <c:out value="${professional.email}"
                                        default="Email not provided" />
                             </div>
                         </div>
+
                         <span class="badge">PENDING REVIEW</span>
                     </div>
 
@@ -305,9 +344,12 @@
                             <div class="detail-value">
                                 <c:choose>
                                     <c:when test="${professional.experienceYears != null}">
-                                        <c:out value="${professional.experienceYears}" /> years
+                                        <c:out value="${professional.experienceYears}" />
+                                        years
                                     </c:when>
-                                    <c:otherwise>Not provided</c:otherwise>
+                                    <c:otherwise>
+                                        Not provided
+                                    </c:otherwise>
                                 </c:choose>
                             </div>
                         </div>
@@ -317,9 +359,11 @@
                             <div class="detail-value">
                                 <c:choose>
                                     <c:when test="${professional.consultationFee != null}">
-                                        ₹<c:out value="${professional.consultationFee}" />
+                                        &#8377;<c:out value="${professional.consultationFee}" />
                                     </c:when>
-                                    <c:otherwise>Not provided</c:otherwise>
+                                    <c:otherwise>
+                                        Not provided
+                                    </c:otherwise>
                                 </c:choose>
                             </div>
                         </div>
@@ -335,8 +379,10 @@
 
                     <div class="bio">
                         <strong>Professional bio</strong>
-                        <p><c:out value="${professional.bio}"
-                                  default="No biography provided." /></p>
+                        <p>
+                            <c:out value="${professional.bio}"
+                                   default="No biography provided." />
+                        </p>
                     </div>
 
                     <div class="actions">
@@ -345,7 +391,7 @@
                               onsubmit="return confirm('Approve this professional?');">
 
                             <input type="hidden"
-                                   name="csrfToken"
+                                   name="_csrf"
                                    value="<c:out value='${csrfToken}' />">
 
                             <input type="hidden"
@@ -366,7 +412,7 @@
                               onsubmit="return confirm('Reject this professional?');">
 
                             <input type="hidden"
-                                   name="csrfToken"
+                                   name="_csrf"
                                    value="<c:out value='${csrfToken}' />">
 
                             <input type="hidden"

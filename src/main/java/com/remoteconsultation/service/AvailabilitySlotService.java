@@ -45,40 +45,38 @@ public class AvailabilitySlotService {
         try {
             connection = transactionManager.getConnection();
 
+            if (!professionalProfileDao.lockProfessionalProfile(
+                    connection, professionalId)) {
+                throw new IllegalArgumentException(
+                        "Professional profile does not exist.");
+            }
+
             if (!userDao.isActiveProfessional(
                     connection, professionalId)) {
                 throw new SecurityException(
-                        "Only active professional accounts can create availability."
-                );
+                        "Only active professional accounts can create availability.");
             }
 
-            String verificationStatus =
-                    professionalProfileDao.findVerificationStatus(
-                            connection, professionalId);
+            String verificationStatus = professionalProfileDao.findVerificationStatus(
+                    connection, professionalId);
 
             if (!"APPROVED".equalsIgnoreCase(verificationStatus)) {
                 throw new SecurityException(
-                        "Your professional profile must be approved first."
-                );
+                        "Your professional profile must be approved first.");
             }
 
-
-            boolean overlapping =
-                    availabilitySlotDao.hasOverlappingSlot(
-                            connection,
-                            professionalId,
-                            slotDate,
-                            startTime,
-                            endTime
-                    );
+            boolean overlapping = availabilitySlotDao.hasOverlappingSlot(
+                    connection,
+                    professionalId,
+                    slotDate,
+                    startTime,
+                    endTime);
 
             if (overlapping) {
                 throw new IllegalArgumentException(
                         "This availability overlaps an existing slot. "
-                        + "Choose a different date or time."
-                );
+                                + "Choose a different date or time.");
             }
-
 
             AvailabilitySlot slot = new AvailabilitySlot();
             slot.setProfessionalId(professionalId);
@@ -87,8 +85,7 @@ public class AvailabilitySlotService {
             slot.setEndTime(endTime);
             slot.setStatus("AVAILABLE");
 
-            Long slotId =
-                    availabilitySlotDao.createSlot(connection, slot);
+            Long slotId = availabilitySlotDao.createSlot(connection, slot);
 
             transactionManager.commit(connection);
 
@@ -107,46 +104,41 @@ public class AvailabilitySlotService {
         }
     }
 
+    public List<AvailabilitySlot> getAvailableSlots(
+            Long professionalId) throws SQLException {
 
-public List<AvailabilitySlot> getAvailableSlots(
-        Long professionalId) throws SQLException {
-
-    if (professionalId == null || professionalId <= 0) {
-        throw new IllegalArgumentException(
-                "A valid professional ID is required.");
-    }
-
-    Connection connection = null;
-
-    try {
-        connection = transactionManager.getConnection();
-
-        if (!userDao.isActiveProfessional(connection, professionalId)) {
+        if (professionalId == null || professionalId <= 0) {
             throw new IllegalArgumentException(
-                    "This professional is not active.");
+                    "A valid professional ID is required.");
         }
 
-        String verificationStatus =
-                professionalProfileDao.findVerificationStatus(
-                        connection, professionalId);
+        Connection connection = null;
 
-        if (!"APPROVED".equalsIgnoreCase(verificationStatus)) {
-            throw new IllegalArgumentException(
-                    "This professional is not approved.");
-        }
+        try {
+            connection = transactionManager.getConnection();
 
-        return availabilitySlotDao.findAvailableSlots(
-                connection, professionalId);
+            if (!userDao.isActiveProfessional(connection, professionalId)) {
+                throw new IllegalArgumentException(
+                        "This professional is not active.");
+            }
 
-    } finally {
-        if (connection != null) {
-            transactionManager.close(connection);
+            String verificationStatus = professionalProfileDao.findVerificationStatus(
+                    connection, professionalId);
+
+            if (!"APPROVED".equalsIgnoreCase(verificationStatus)) {
+                throw new IllegalArgumentException(
+                        "This professional is not approved.");
+            }
+
+            return availabilitySlotDao.findAvailableSlots(
+                    connection, professionalId);
+
+        } finally {
+            if (connection != null) {
+                transactionManager.close(connection);
+            }
         }
     }
-}
-
-
-
 
     private void validateSlot(
             Long professionalId,
@@ -156,21 +148,18 @@ public List<AvailabilitySlot> getAvailableSlots(
 
         if (professionalId == null || professionalId <= 0) {
             throw new IllegalArgumentException(
-                    "A valid professional ID is required."
-            );
+                    "A valid professional ID is required.");
         }
 
         if (slotDate == null || !slotDate.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException(
-                    "Availability must be scheduled for a future date."
-            );
+                    "Availability must be scheduled for a future date.");
         }
 
         if (startTime == null || endTime == null
                 || !endTime.isAfter(startTime)) {
             throw new IllegalArgumentException(
-                    "End time must be later than start time."
-            );
+                    "End time must be later than start time.");
         }
     }
 }

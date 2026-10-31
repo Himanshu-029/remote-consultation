@@ -1,5 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -108,7 +108,11 @@
     </p>
 
     <form action="${pageContext.request.contextPath}/login"
-          method="post">
+        method="post">
+
+    <input type="hidden"
+        name="_csrf"
+        value="<c:out value='${sessionScope.csrfToken}'/>">
 
         <div class="form-group">
             <label for="email">Email</label>

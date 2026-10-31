@@ -161,6 +161,11 @@
         <form method="post"
               action="${pageContext.request.contextPath}/professional/availability">
 
+            <input type="hidden"
+                   name="_csrf"
+                   value="<c:out value='${sessionScope.csrfToken}'/>">
+
+
             <label for="slotDate">Availability date</label>
             <input type="date"
                    id="slotDate"

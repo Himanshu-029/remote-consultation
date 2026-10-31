@@ -1,4 +1,4 @@
-
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 
 <!DOCTYPE html>
@@ -204,7 +204,11 @@
         <% } %>
 
         <form method="post"
-              action="${pageContext.request.contextPath}/professional-register">
+            action="${pageContext.request.contextPath}/professional-register">
+
+        <input type="hidden"
+            name="_csrf"
+            value="<c:out value='${sessionScope.csrfToken}'/>">
 
             <h2 class="section-title">Account Information</h2>
 

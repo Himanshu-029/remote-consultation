@@ -281,9 +281,13 @@
                             <form method="post"
                                   action="${pageContext.request.contextPath}/patient/cancel-appointment"
                                   onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+
                                 <input type="hidden"
-                                       name="appointmentId"
-                                       value="<c:out value='${appointment.appointmentId}'/>">
+                                        name="_csrf"
+                                        value="<c:out value='${sessionScope.csrfToken}'/>">
+                                <input type="hidden"
+                                        name="appointmentId"
+                                        value="<c:out value='${appointment.appointmentId}'/>">
                                 <button type="submit" class="cancel-button">
                                     Cancel Appointment
                                 </button>
