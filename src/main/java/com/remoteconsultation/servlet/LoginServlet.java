@@ -76,10 +76,12 @@ public class LoginServlet extends HttpServlet {
                 || loginRateLimiter.isBlocked(accountKey)) {
 
             response.setHeader("Retry-After", "900");
-            response.sendError(
-                429,
-                "Too many login attempts. Please try again later."
-                );
+            showLoginError(
+                    request,
+                    response,
+                    429,
+                    "Too many login attempts. "
+                            + "Please try again in 15 minutes.");
             return;
         }
 
@@ -122,14 +124,42 @@ public class LoginServlet extends HttpServlet {
             loginRateLimiter.recordFailure(ipKey);
             loginRateLimiter.recordFailure(accountKey);
 
-            response.sendError(
+            showLoginError(
+                    request,
+                    response,
                     HttpServletResponse.SC_UNAUTHORIZED,
-                    "Invalid email or password."
-            );
+                    "Invalid email or password.");
 
         } catch (Exception e) {
             throw new ServletException("Login failed.", e);
         }
+    }
+
+    /**
+     * Re-renders the login form with an error message instead of
+     * sending the browser to a bare error page.
+     */
+    private void showLoginError(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            int status,
+            String message)
+            throws ServletException, IOException {
+
+        HttpSession session = request.getSession(false);
+
+        if (session != null) {
+            request.setAttribute(
+                    "csrfToken",
+                    CsrfProtectionFilter.ensureToken(session)
+            );
+        }
+
+        request.setAttribute("errorMessage", message);
+        response.setStatus(status);
+
+        request.getRequestDispatcher("/WEB-INF/jsp/login.jsp")
+                .forward(request, response);
     }
 
     private String hashKey(String value) {

@@ -133,15 +133,49 @@ class LoginServletTest {
         when(request.getSession(false))
                 .thenReturn(oldSession);
 
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/WEB-INF/jsp/login.jsp"))
+                .thenReturn(dispatcher);
+
         servlet.invokePost(request, response);
 
-        verify(response).sendError(
-                HttpServletResponse.SC_UNAUTHORIZED,
-                "Invalid email or password."
-        );
+        // The login form is shown again with a message (no bare error page).
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(request).setAttribute(
+                "errorMessage", "Invalid email or password.");
+        verify(dispatcher).forward(request, response);
 
         verify(oldSession, never()).invalidate();
         verify(request, never()).getSession(true);
+    }
+
+    @Test
+    void blockedClientSeesTooManyRequestsMessageWithoutCheckingPassword()
+            throws Exception {
+
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/WEB-INF/jsp/login.jsp"))
+                .thenReturn(dispatcher);
+
+        when(request.getParameter("email"))
+                .thenReturn("patient@example.com");
+        when(request.getParameter("password"))
+                .thenReturn("WrongPassword");
+        when(request.getSession(false)).thenReturn(oldSession);
+
+        when(userService.login(any()))
+                .thenThrow(new IllegalArgumentException(
+                        "Invalid email or password."));
+
+        // Five failures, then the sixth attempt is blocked.
+        for (int attempt = 0; attempt < 6; attempt++) {
+            servlet.invokePost(request, response);
+        }
+
+        verify(userService, times(5)).login(any());
+        verify(response).setHeader("Retry-After", "900");
+        verify(response).setStatus(429);
+        verify(dispatcher, times(6)).forward(request, response);
     }
 
     @Test

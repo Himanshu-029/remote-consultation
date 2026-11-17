@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Repository
@@ -16,7 +17,8 @@ public class AppointmentDao {
 
     public Appointment lockAvailableSlot(
             Connection connection,
-            Long slotId) throws SQLException {
+            Long slotId,
+            LocalDateTime now) throws SQLException {
 
         String sql = """
                 SELECT slot_id,
@@ -50,9 +52,11 @@ public class AppointmentDao {
                 LocalTime startTime =
                         resultSet.getTime("start_time").toLocalTime();
 
-                if (slotDate.isBefore(LocalDate.now())
-                        || (slotDate.equals(LocalDate.now())
-                        && !startTime.isAfter(LocalTime.now()))) {
+                LocalDate today = now.toLocalDate();
+
+                if (slotDate.isBefore(today)
+                        || (slotDate.equals(today)
+                        && !startTime.isAfter(now.toLocalTime()))) {
                     return null;
                 }
 

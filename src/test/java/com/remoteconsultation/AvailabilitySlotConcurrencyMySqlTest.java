@@ -69,7 +69,8 @@ class AvailabilitySlotConcurrencyMySqlTest {
                 new JdbcTransactionManager(dataSource);
 
         service = new AvailabilitySlotService(
-                slotDao, profileDao, userDao, transactionManager);
+                slotDao, profileDao, userDao, transactionManager,
+                java.time.Clock.system(java.time.ZoneId.of("Asia/Kolkata")));
 
         String unique = UUID.randomUUID()
                 .toString().replace("-", "");

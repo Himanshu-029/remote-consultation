@@ -14,8 +14,12 @@ import org.mockito.InOrder;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -47,7 +51,8 @@ class AvailabilitySlotServiceTest {
                 availabilitySlotDao,
                 professionalProfileDao,
                 userDao,
-                transactionManager
+                transactionManager,
+                Clock.system(ZoneId.of("Asia/Kolkata"))
         );
 
         when(transactionManager.getConnection()).thenReturn(connection);
@@ -141,5 +146,59 @@ class AvailabilitySlotServiceTest {
                 .createSlot(any(), any());
         verify(transactionManager).rollback(connection);
         verify(transactionManager).close(connection);
+    }
+
+    @Test
+    void shouldTreatTodayAsPastUsingApplicationTimeZone()
+            throws SQLException {
+        // 20:00 UTC on 12 Nov is already 13 Nov (01:30) in Asia/Kolkata,
+        // so a slot on 13 Nov is "today" there and must be rejected even
+        // when the JVM default time zone is still on 12 Nov.
+        Clock clock = Clock.fixed(
+                Instant.parse("2026-11-12T20:00:00Z"),
+                ZoneId.of("Asia/Kolkata"));
+
+        AvailabilitySlotService clockedService =
+                new AvailabilitySlotService(
+                        availabilitySlotDao,
+                        professionalProfileDao,
+                        userDao,
+                        transactionManager,
+                        clock);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> clockedService.createSlot(
+                        professionalId,
+                        LocalDate.of(2026, 11, 13),
+                        start,
+                        end)
+        );
+
+        verify(transactionManager, never()).getConnection();
+    }
+
+    @Test
+    void shouldPassApplicationTimeToAvailableSlotQuery()
+            throws SQLException {
+        // 04:30 UTC is 10:00 in Asia/Kolkata.
+        Clock clock = Clock.fixed(
+                Instant.parse("2026-11-12T04:30:00Z"),
+                ZoneId.of("Asia/Kolkata"));
+
+        AvailabilitySlotService clockedService =
+                new AvailabilitySlotService(
+                        availabilitySlotDao,
+                        professionalProfileDao,
+                        userDao,
+                        transactionManager,
+                        clock);
+
+        clockedService.getAvailableSlots(professionalId);
+
+        verify(availabilitySlotDao).findAvailableSlots(
+                connection,
+                professionalId,
+                LocalDateTime.of(2026, 11, 12, 10, 0, 0));
     }
 }

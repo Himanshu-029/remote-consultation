@@ -102,7 +102,8 @@ public class AvailabilitySlotDao {
 
         public java.util.List<AvailabilitySlot> findAvailableSlots(
                         Connection connection,
-                        Long professionalId) throws SQLException {
+                        Long professionalId,
+                        java.time.LocalDateTime now) throws SQLException {
 
                 String sql = """
                                 SELECT slot_id,
@@ -115,10 +116,10 @@ public class AvailabilitySlotDao {
                                 WHERE professional_id = ?
                                   AND status = 'AVAILABLE'
                                   AND (
-                                        slot_date > CURRENT_DATE
+                                        slot_date > ?
                                         OR (
-                                            slot_date = CURRENT_DATE
-                                            AND end_time > CURRENT_TIME
+                                            slot_date = ?
+                                            AND end_time > ?
                                         )
                                   )
                                 ORDER BY slot_date, start_time
@@ -129,6 +130,9 @@ public class AvailabilitySlotDao {
                 try (PreparedStatement statement = connection.prepareStatement(sql)) {
 
                         statement.setLong(1, professionalId);
+                        statement.setObject(2, now.toLocalDate());
+                        statement.setObject(3, now.toLocalDate());
+                        statement.setObject(4, now.toLocalTime());
 
                         try (ResultSet resultSet = statement.executeQuery()) {
 

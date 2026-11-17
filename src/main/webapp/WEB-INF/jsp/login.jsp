@@ -84,6 +84,16 @@
             background: #1d4ed8;
         }
 
+        .error-message {
+            margin-bottom: 20px;
+            padding: 12px 14px;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            background: #fef2f2;
+            color: #b91c1c;
+            font-size: 14px;
+        }
+
         .register-link {
             text-align: center;
             margin-top: 20px;
@@ -107,6 +117,12 @@
         Login to your Remote Consultation account.
     </p>
 
+    <c:if test="${not empty errorMessage}">
+        <div class="error-message" role="alert">
+            <c:out value="${errorMessage}"/>
+        </div>
+    </c:if>
+
     <form action="${pageContext.request.contextPath}/login"
         method="post">
 
@@ -121,6 +137,7 @@
                     type="email"
                     id="email"
                     name="email"
+                    value="<c:out value='${param.email}'/>"
                     required
                     autocomplete="email">
         </div>

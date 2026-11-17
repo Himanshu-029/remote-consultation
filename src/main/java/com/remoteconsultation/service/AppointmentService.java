@@ -8,8 +8,10 @@ import com.remoteconsultation.model.Appointment;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Service
 public class AppointmentService {
@@ -17,14 +19,26 @@ public class AppointmentService {
     private final AppointmentDao appointmentDao;
     private final PatientProfileDao patientProfileDao;
     private final JdbcTransactionManager transactionManager;
+    private final Clock clock;
 
     public AppointmentService(
             AppointmentDao appointmentDao,
             PatientProfileDao patientProfileDao,
-            JdbcTransactionManager transactionManager) {
+            JdbcTransactionManager transactionManager,
+            Clock clock) {
         this.appointmentDao = appointmentDao;
         this.patientProfileDao = patientProfileDao;
         this.transactionManager = transactionManager;
+        this.clock = clock;
+    }
+
+    /**
+     * Current time in the application time zone (see app.timezone).
+     * All "is this slot still in the future?" decisions use this value
+     * so they never depend on the JVM or MySQL server time zone.
+     */
+    private LocalDateTime currentTime() {
+        return LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
     }
 
     public Long bookAppointment(
@@ -63,7 +77,7 @@ public class AppointmentService {
 
             Appointment slot =
                     appointmentDao.lockAvailableSlot(
-                            connection, slotId);
+                            connection, slotId, currentTime());
 
             if (slot == null) {
                 throw new IllegalArgumentException(
@@ -287,10 +301,10 @@ public void updateAppointmentStatus(
                     WHERE slot_id = ?
                       AND status = 'BOOKED'
                       AND (
-                          slot_date > CURRENT_DATE
+                          slot_date > ?
                           OR (
-                              slot_date = CURRENT_DATE
-                              AND start_time > CURRENT_TIME
+                              slot_date = ?
+                              AND start_time > ?
                           )
                       )
                     """;
@@ -298,6 +312,10 @@ public void updateAppointmentStatus(
             try (java.sql.PreparedStatement statement =
                          connection.prepareStatement(releaseSql)) {
                 statement.setLong(1, appointment.getSlotId());
+                LocalDateTime now = currentTime();
+                statement.setObject(2, now.toLocalDate());
+                statement.setObject(3, now.toLocalDate());
+                statement.setObject(4, now.toLocalTime());
                 statement.executeUpdate();
             }
         }
@@ -377,10 +395,10 @@ public void cancelPatientAppointment(
                 WHERE slot_id = ?
                   AND status = 'BOOKED'
                   AND (
-                      slot_date > CURRENT_DATE
+                      slot_date > ?
                       OR (
-                          slot_date = CURRENT_DATE
-                          AND start_time > CURRENT_TIME
+                          slot_date = ?
+                          AND start_time > ?
                       )
                   )
                 """;
@@ -388,6 +406,10 @@ public void cancelPatientAppointment(
         try (java.sql.PreparedStatement statement =
                      connection.prepareStatement(releaseSql)) {
             statement.setLong(1, appointment.getSlotId());
+            LocalDateTime now = currentTime();
+            statement.setObject(2, now.toLocalDate());
+            statement.setObject(3, now.toLocalDate());
+            statement.setObject(4, now.toLocalTime());
             statement.executeUpdate();
         }
 
@@ -403,38 +425,6 @@ public void cancelPatientAppointment(
         if (connection != null) {
             transactionManager.close(connection);
         }
-    }
-}
-
-
-public boolean completeConfirmedAppointment(
-        Connection connection,
-        Long appointmentId,
-        Long professionalId) throws SQLException {
-
-    String sql = """
-            UPDATE appointments
-            SET status = 'COMPLETED',
-                completed_at = CURRENT_TIMESTAMP
-            WHERE appointment_id = ?
-              AND professional_id = ?
-              AND status = 'CONFIRMED'
-              AND EXISTS (
-                  SELECT 1
-                  FROM availability_slots s
-                  WHERE s.slot_id = appointments.slot_id
-                    AND TIMESTAMP(s.slot_date, s.end_time)
-                        <= CURRENT_TIMESTAMP
-              )
-            """;
-
-    try (PreparedStatement statement =
-                 connection.prepareStatement(sql)) {
-
-        statement.setLong(1, appointmentId);
-        statement.setLong(2, professionalId);
-
-        return statement.executeUpdate() == 1;
     }
 }
 
@@ -498,8 +488,7 @@ try (java.sql.PreparedStatement statement =
                 java.time.LocalDateTime.of(slotDate, endTime);
 
         java.time.LocalDateTime now =
-                java.time.LocalDateTime.now(
-                        java.time.ZoneId.of("Asia/Kolkata"));
+                java.time.LocalDateTime.now(clock);
 
         if (now.isBefore(scheduledEnd)) {
             throw new IllegalArgumentException(

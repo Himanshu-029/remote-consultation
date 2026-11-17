@@ -9,8 +9,11 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 
 @Service
 public class AvailabilitySlotService {
@@ -19,17 +22,20 @@ public class AvailabilitySlotService {
     private final ProfessionalProfileDao professionalProfileDao;
     private final UserDao userDao;
     private final JdbcTransactionManager transactionManager;
+    private final Clock clock;
 
     public AvailabilitySlotService(
             AvailabilitySlotDao availabilitySlotDao,
             ProfessionalProfileDao professionalProfileDao,
             UserDao userDao,
-            JdbcTransactionManager transactionManager) {
+            JdbcTransactionManager transactionManager,
+            Clock clock) {
 
         this.availabilitySlotDao = availabilitySlotDao;
         this.professionalProfileDao = professionalProfileDao;
         this.userDao = userDao;
         this.transactionManager = transactionManager;
+        this.clock = clock;
     }
 
     public Long createSlot(
@@ -131,7 +137,10 @@ public class AvailabilitySlotService {
             }
 
             return availabilitySlotDao.findAvailableSlots(
-                    connection, professionalId);
+                    connection,
+                    professionalId,
+                    LocalDateTime.now(clock)
+                            .truncatedTo(ChronoUnit.SECONDS));
 
         } finally {
             if (connection != null) {
@@ -151,7 +160,7 @@ public class AvailabilitySlotService {
                     "A valid professional ID is required.");
         }
 
-        if (slotDate == null || !slotDate.isAfter(LocalDate.now())) {
+        if (slotDate == null || !slotDate.isAfter(LocalDate.now(clock))) {
             throw new IllegalArgumentException(
                     "Availability must be scheduled for a future date.");
         }

@@ -38,7 +38,8 @@ class AppointmentLifecycleTest {
         appointmentService = new AppointmentService(
                 appointmentDao,
                 patientProfileDao,
-                transactionManager
+                transactionManager,
+                java.time.Clock.system(java.time.ZoneId.of("Asia/Kolkata"))
         );
 
         when(transactionManager.getConnection())
