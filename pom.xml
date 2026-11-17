@@ -58,6 +58,19 @@
             <scope>runtime</scope>
         </dependency>
 
+        
+<!-- Database migrations -->
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-core</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-mysql</artifactId>
+</dependency>
+
+
         <!-- Embedded Tomcat -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -113,7 +126,7 @@
             <version>3.0.1</version>
         </dependency>
 
-
+      
     </dependencies>
 
     <build>

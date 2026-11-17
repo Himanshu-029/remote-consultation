@@ -48,3 +48,5 @@ GenerateHash.java
 
 # Local logs
 *.log
+
+database-backups/
